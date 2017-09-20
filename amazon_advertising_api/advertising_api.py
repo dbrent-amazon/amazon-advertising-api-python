@@ -1,8 +1,7 @@
 from amazon_advertising_api.regions import regions
 from amazon_advertising_api.versions import versions
 from io import BytesIO
-import urllib.request
-import urllib.parse
+from six.moves import urllib
 import gzip
 import json
 
