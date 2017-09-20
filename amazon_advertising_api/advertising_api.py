@@ -664,11 +664,11 @@ class AdvertisingApi:
                             'response': json.loads(data.decode('utf-8'))}
                 else:
                     return {'success': False,
-                            'code': res.code,
+                            'code': response.code,
                             'response': 'Location is empty.'}
             else:
                 return {'success': False,
-                        'code': res.code,
+                        'code': response.code,
                         'response': 'Location not found.'}
         except urllib.error.HTTPError as e:
             return {'success': False,
