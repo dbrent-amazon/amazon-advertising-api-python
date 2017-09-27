@@ -69,7 +69,8 @@ class AdvertisingApi:
                     'code': 0,
                     'response': 'refresh_token is empty.'}
 
-        self._access_token = urllib.parse.unquote(self._access_token)
+        if self._access_token:
+            self._access_token = urllib.parse.unquote(self._access_token)
         self.refresh_token = urllib.parse.unquote(self.refresh_token)
 
         params = {
