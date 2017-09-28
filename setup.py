@@ -4,7 +4,7 @@ import amazon_advertising_api.versions as aa_versions
 
 setup(
     name='amazon_advertising',
-    packages=['pay_with_amazon'],
+    packages=['amazon_advertising'],
     version=aa_versions.versions['application_version'],
     description='Unofficial Amazon Sponsored Products Python client library.',
     url='https://github.com/sguermond/amazon-advertising-api-python')
