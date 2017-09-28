@@ -108,7 +108,7 @@ class AdvertisingApi:
                 else:
                     return {
                         'success': False,
-                        'code': '',
+                        'code': 0,
                         'response': 'response state did not match request state'
                     }
             else:
@@ -705,6 +705,7 @@ class AdvertisingApi:
         :type method: string
         """
         if self._access_token is None:
+
             return {'success': False,
                     'code': 0,
                     'response': 'access_token is empty.'}
