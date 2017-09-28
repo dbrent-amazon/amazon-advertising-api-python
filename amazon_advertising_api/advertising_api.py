@@ -4,6 +4,8 @@ from io import BytesIO
 from six.moves import urllib
 import gzip
 import json
+import os
+import base64
 
 
 class AdvertisingApi:
@@ -63,6 +65,12 @@ class AdvertisingApi:
         """Set access_token"""
         self._access_token = value
 
+    @staticmethod
+    def generate_state_parameter():
+        random = os.urandom(256)
+        state = base64.b64encode(random)
+        return state
+
     def do_refresh_token(self):
         if self.refresh_token is None:
             return {'success': False,
@@ -73,11 +81,13 @@ class AdvertisingApi:
             self._access_token = urllib.parse.unquote(self._access_token)
         self.refresh_token = urllib.parse.unquote(self.refresh_token)
 
+        state = self.generate_state_parameter()
         params = {
             'grant_type': 'refresh_token',
             'refresh_token': self.refresh_token,
             'client_id': self.client_id,
-            'client_secret': self.client_secret}
+            'client_secret': self.client_secret,
+            'state': state}
 
         data = urllib.parse.urlencode(params)
 
@@ -90,10 +100,17 @@ class AdvertisingApi:
             response = f.read().decode('utf-8')
             if 'access_token' in response:
                 json_data = json.loads(response)
-                self._access_token = json_data['access_token']
-                return {'success': True,
-                        'code': f.code,
-                        'response': self._access_token}
+                if json_data.get('state') == state:
+                    self._access_token = json_data['access_token']
+                    return {'success': True,
+                            'code': f.code,
+                            'response': self._access_token}
+                else:
+                    return {
+                        'success': False,
+                        'code': '',
+                        'response': 'response state did not match request state'
+                    }
             else:
                 return {'success': False,
                         'code': f.code,
@@ -136,7 +153,7 @@ class AdvertisingApi:
         profileIds.
 
         :PUT: /profiles
-        :param data: A list of updates containing **proflileId** and the
+        :param data: A list of updates containing **profileId** and the
             mutable fields to be modified. Only daily budgets are mutable at
             this time.
         :type data: List of **Profile**
