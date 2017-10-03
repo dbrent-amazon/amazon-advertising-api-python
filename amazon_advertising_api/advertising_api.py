@@ -65,12 +65,6 @@ class AdvertisingApi:
         """Set access_token"""
         self._access_token = value
 
-    @staticmethod
-    def generate_state_parameter():
-        random = os.urandom(256)
-        state = base64.b64encode(random)
-        return state
-
     def do_refresh_token(self):
         if self.refresh_token is None:
             return {'success': False,
@@ -81,13 +75,11 @@ class AdvertisingApi:
             self._access_token = urllib.parse.unquote(self._access_token)
         self.refresh_token = urllib.parse.unquote(self.refresh_token)
 
-        state = self.generate_state_parameter()
         params = {
             'grant_type': 'refresh_token',
             'refresh_token': self.refresh_token,
             'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'state': state}
+            'client_secret': self.client_secret}
 
         data = urllib.parse.urlencode(params)
 
@@ -100,17 +92,10 @@ class AdvertisingApi:
             response = f.read().decode('utf-8')
             if 'access_token' in response:
                 json_data = json.loads(response)
-                if json_data.get('state') == state:
-                    self._access_token = json_data['access_token']
-                    return {'success': True,
-                            'code': f.code,
-                            'response': self._access_token}
-                else:
-                    return {
-                        'success': False,
-                        'code': 0,
-                        'response': 'response state did not match request state'
-                    }
+                self._access_token = json_data['access_token']
+                return {'success': True,
+                        'code': f.code,
+                        'response': self._access_token}
             else:
                 return {'success': False,
                         'code': f.code,
