@@ -16,6 +16,7 @@ class AdvertisingApi:
                  client_id,
                  client_secret,
                  region,
+                 profile_id=None,
                  access_token=None,
                  refresh_token=None,
                  sandbox=False):
@@ -44,7 +45,7 @@ class AdvertisingApi:
         self.api_version = versions['api_version']
         self.user_agent = 'AdvertisingAPI Python Client Library v{}'.format(
             versions['application_version'])
-        self.profile_id = None
+        self.profile_id = profile_id
         self.token_url = None
 
         if region in regions:
@@ -686,7 +687,7 @@ class AdvertisingApi:
         :type interface: string
         :param params: Parameters associated with this call.
         :type params: GET: string POST: dictionary
-        :param method: Call method. Should be either 'GET' or 'POST'
+        :param method: Call method. Should be either 'GET', 'PUT', or 'POST'
         :type method: string
         """
         if self._access_token is None:
@@ -694,13 +695,12 @@ class AdvertisingApi:
                     'code': 0,
                     'response': 'access_token is empty.'}
 
-        headers = {'Authorization': 'bearer {}'.format(self._access_token),
+        headers = {'Authorization': 'Bearer {}'.format(self._access_token),
                    'Content-Type': 'application/json',
                    'User-Agent': self.user_agent}
 
         if self.profile_id is not None and self.profile_id != '':
             headers['Amazon-Advertising-API-Scope'] = self.profile_id
-            print('Profile ID: ', self.profile_id)
         elif 'profiles' not in interface:
             # Profile ID is required for all calls beyond authentication and getting profile info
             return {'success': False,
