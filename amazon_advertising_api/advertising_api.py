@@ -690,7 +690,6 @@ class AdvertisingApi:
         :type method: string
         """
         if self._access_token is None:
-
             return {'success': False,
                     'code': 0,
                     'response': 'access_token is empty.'}
@@ -701,6 +700,12 @@ class AdvertisingApi:
 
         if self.profile_id is not None and self.profile_id != '':
             headers['Amazon-Advertising-API-Scope'] = self.profile_id
+            print('Profile ID: ', self.profile_id)
+        elif 'profiles' not in interface:
+            # Profile ID is required for all calls beyond authentication and getting profile info
+            return {'success': False,
+                    'code': 0,
+                    'response': 'profile_id is empty.'}
 
         data = None
 
