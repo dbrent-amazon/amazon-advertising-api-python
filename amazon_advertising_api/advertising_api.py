@@ -104,8 +104,7 @@ class AdvertisingApi:
         except urllib.error.HTTPError as e:
             return {'success': False,
                     'code': e.code,
-                    'response': e.msg,
-                    'details': e.read()}
+                    'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
 
     def get_profiles(self):
         """
@@ -678,8 +677,7 @@ class AdvertisingApi:
         except urllib.error.HTTPError as e:
             return {'success': False,
                     'code': e.code,
-                    'response': e.msg,
-                    'details': e.read()}
+                    'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
 
     def _operation(self, interface, params=None, method='GET'):
         """
@@ -742,8 +740,7 @@ class AdvertisingApi:
         except urllib.error.HTTPError as e:
             return {'success': False,
                     'code': e.code,
-                    'response': e.msg,
-                    'details': e.read()}
+                    'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
 
 
 class NoRedirectHandler(urllib.request.HTTPErrorProcessor):
