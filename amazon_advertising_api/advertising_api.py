@@ -4,11 +4,9 @@ from io import BytesIO
 from six.moves import urllib
 import gzip
 import json
-import os
-import base64
 
 
-class AdvertisingApi:
+class AdvertisingApi(object):
 
     """Lightweight client library for Amazon Sponsored Products API."""
 
