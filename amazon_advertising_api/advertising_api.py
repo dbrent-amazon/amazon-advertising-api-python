@@ -603,20 +603,46 @@ class AdvertisingApi(object):
         return self._operation(interface, data)
 
     def request_snapshot(self, record_type=None, snapshot_id=None, data=None):
+        """
+        Required data:
+        * :campaignType:  The type of campaign for which snapshot should be generated. Must be sponsoredProducts.
+        """
+        if not data:
+            data = {'campaignType': 'sponsoredProducts'}
+        elif not data.get('campaignType'):
+            data['campaignType'] = 'sponsoredProducts'
+
         if record_type is not None:
             interface = '{}/snapshot'.format(record_type)
             return self._operation(interface, data, method='POST')
         elif snapshot_id is not None:
             interface = 'snapshots/{}'.format(snapshot_id)
             return self._operation(interface, data)
+        else:
+            return {'success': False,
+                    'code': 0,
+                    'response': 'record_type and snapshot_id are both empty.'}
 
     def request_report(self, record_type=None, report_id=None, data=None):
+        """
+        Required data:
+        * :campaignType:  The type of campaign for which report should be generated. Must be sponsoredProducts.
+        """
+        if not data:
+            data = {'campaignType': 'sponsoredProducts'}
+        elif not data.get('campaignType'):
+            data['campaignType'] = 'sponsoredProducts'
+
         if record_type is not None:
             interface = '{}/report'.format(record_type)
             return self._operation(interface, data, method='POST')
         elif report_id is not None:
             interface = 'reports/{}'.format(report_id)
             return self._operation(interface)
+        else:
+            return {'success': False,
+                    'code': 0,
+                    'response': 'record_type and report_id are both empty.'}
 
     def get_report(self, report_id):
         interface = 'reports/{}'.format(report_id)
