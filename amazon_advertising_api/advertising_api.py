@@ -1,7 +1,15 @@
 from amazon_advertising_api.regions import regions
 from amazon_advertising_api.versions import versions
 from io import BytesIO
-from six.moves import urllib
+try:
+    # Python 3
+    import urllib.request
+    import urllib.parse
+    PYTHON = 3
+except ImportError:
+    # Python 2
+    from six.moves import urllib
+    PYTHON = 2
 import gzip
 import json
 
@@ -103,6 +111,23 @@ class AdvertisingApi(object):
             return {'success': False,
                     'code': e.code,
                     'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
+
+    def register_profile(self, country_code):
+        """
+        Registers a sandbox profile.
+
+        :PUT: /profiles/register
+        :param country_code: The country in which to register the profile.
+                             Country code can be one of the following:
+                             US, CA, UK, DE, FR, ES, IT, IN, CN, JP
+        :returns:
+           :200: Success
+           :401: Unauthorized
+        """
+        interface = 'profiles/register'
+        params = {"countryCode": country_code}
+        method = 'PUT'
+        return self._operation(interface, params, method)
 
     def get_profiles(self):
         """
@@ -753,7 +778,10 @@ class AdvertisingApi(object):
                 api_version=self.api_version,
                 interface=interface)
 
-        req = urllib.request.Request(url=url, headers=headers, data=data)
+        if PYTHON == 3:
+            req = urllib.request.Request(url=url, headers=headers, data=data)
+        else:
+            req = MethodRequest(url=url, headers=headers, data=data, method=method)
         req.method = method
 
         try:
@@ -768,7 +796,6 @@ class AdvertisingApi(object):
 
 
 class NoRedirectHandler(urllib.request.HTTPErrorProcessor):
-
     """Handles report and snapshot redirects."""
 
     def http_response(self, request, response):
@@ -783,3 +810,22 @@ class NoRedirectHandler(urllib.request.HTTPErrorProcessor):
                 self, request, response)
 
     https_response = http_response
+
+
+class MethodRequest(urllib.request.Request):
+    """
+    When not using Python 3 and the requests library.
+    Source: Ed Marshall, https://gist.github.com/logic/2715756
+    """
+    def __init__(self, *args, **kwargs):
+        if 'method' in kwargs:
+            self._method = kwargs['method']
+            del kwargs['method']
+        else:
+            self._method = None
+        return urllib.request.Request.__init__(self, *args, **kwargs)
+
+    def get_method(self, *args, **kwargs):
+        if self._method is not None:
+            return self._method
+        return urllib.request.Request.get_method(self, *args, **kwargs)
