@@ -53,7 +53,7 @@ class AdvertisingApi(object):
                 self.endpoint = regions[region]['prod']
             self.token_url = regions[region]['token_url']
         else:
-            raise KeyError('Region {} not found in regions.'.format(regions))
+            raise KeyError('Region {} not found in regions.'.format(region))
 
     @property
     def access_token(self):
