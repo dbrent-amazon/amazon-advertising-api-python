@@ -689,6 +689,26 @@ class AdvertisingApi(object):
         else:
             return res
 
+    def get_ad_group_bid_recommendations(self, ad_group_id):
+        """Request bid recommendations for specified ad group."""
+        interface = 'adGroups/{}/bidRecommendations'.format(ad_group_id)
+        return self._operation(interface)
+
+    def get_keyword_bid_recommendations(self, keyword_id=None, keyword_data=None):
+        """
+        Request bid recommendations for:
+
+        * a specified keyword
+        * a list of up to 100 keywords
+
+        A list of keywords must be in the KeywordBidRecommendationsData format:
+
+        ```
+        int adGroupId: []
+        ```
+        """
+        pass
+
     def _download(self, location):
         headers = {'Authorization': 'Bearer {}'.format(self._access_token),
                    'Content-Type': 'application/json',
