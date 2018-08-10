@@ -672,7 +672,7 @@ class AdvertisingApi(object):
     def get_report(self, report_id):
         interface = 'reports/{}'.format(report_id)
         res = self._operation(interface)
-        if json.loads(res['response'])['status'] == 'SUCCESS':
+        if res['code'] == 200 and json.loads(res['response'])['status'] == 'SUCCESS':
             res = self._download(
                 location=json.loads(res['response'])['location'])
             return res
