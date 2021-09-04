@@ -1,13 +1,20 @@
 from amazon_advertising_api.regions import regions
 from amazon_advertising_api.versions import versions
 from io import BytesIO
-import urllib.request
-import urllib.parse
+try:
+    # Python 3
+    import urllib.request
+    import urllib.parse
+    PYTHON = 3
+except ImportError:
+    # Python 2
+    from six.moves import urllib
+    PYTHON = 2
 import gzip
 import json
 
 
-class AdvertisingApi:
+class AdvertisingApi(object):
 
     """Lightweight client library for Amazon Sponsored Products API."""
 
@@ -15,6 +22,7 @@ class AdvertisingApi:
                  client_id,
                  client_secret,
                  region,
+                 profile_id=None,
                  access_token=None,
                  refresh_token=None,
                  sandbox=False):
@@ -43,7 +51,7 @@ class AdvertisingApi:
         self.api_version = versions['api_version']
         self.user_agent = 'AdvertisingAPI Python Client Library v{}'.format(
             versions['application_version'])
-        self.profile_id = None
+        self.profile_id = profile_id
         self.token_url = None
 
         if region in regions:
@@ -53,7 +61,7 @@ class AdvertisingApi:
                 self.endpoint = regions[region]['prod']
             self.token_url = regions[region]['token_url']
         else:
-            raise KeyError('Region {} not found in regions.'.format(regions))
+            raise KeyError('Region {} not found in regions.'.format(region))
 
     @property
     def access_token(self):
@@ -70,7 +78,8 @@ class AdvertisingApi:
                     'code': 0,
                     'response': 'refresh_token is empty.'}
 
-        self._access_token = urllib.parse.unquote(self._access_token)
+        if self._access_token:
+            self._access_token = urllib.parse.unquote(self._access_token)
         self.refresh_token = urllib.parse.unquote(self.refresh_token)
 
         params = {
@@ -101,7 +110,24 @@ class AdvertisingApi:
         except urllib.error.HTTPError as e:
             return {'success': False,
                     'code': e.code,
-                    'response': e.msg}
+                    'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
+
+    def register_profile(self, country_code):
+        """
+        Registers a sandbox profile.
+
+        :PUT: /profiles/register
+        :param country_code: The country in which to register the profile.
+                             Country code can be one of the following:
+                             US, CA, UK, DE, FR, ES, IT, IN, CN, JP
+        :returns:
+           :200: Success
+           :401: Unauthorized
+        """
+        interface = 'profiles/register'
+        params = {"countryCode": country_code}
+        method = 'PUT'
+        return self._operation(interface, params, method)
 
     def get_profiles(self):
         """
@@ -136,7 +162,7 @@ class AdvertisingApi:
         profileIds.
 
         :PUT: /profiles
-        :param data: A list of updates containing **proflileId** and the
+        :param data: A list of updates containing **profileId** and the
             mutable fields to be modified. Only daily budgets are mutable at
             this time.
         :type data: List of **Profile**
@@ -602,25 +628,51 @@ class AdvertisingApi:
         return self._operation(interface, data)
 
     def request_snapshot(self, record_type=None, snapshot_id=None, data=None):
+        """
+        Required data:
+        * :campaignType:  The type of campaign for which snapshot should be generated. Must be sponsoredProducts.
+        """
+        if not data:
+            data = {'campaignType': 'sponsoredProducts'}
+        elif not data.get('campaignType'):
+            data['campaignType'] = 'sponsoredProducts'
+
         if record_type is not None:
             interface = '{}/snapshot'.format(record_type)
             return self._operation(interface, data, method='POST')
         elif snapshot_id is not None:
             interface = 'snapshots/{}'.format(snapshot_id)
             return self._operation(interface, data)
+        else:
+            return {'success': False,
+                    'code': 0,
+                    'response': 'record_type and snapshot_id are both empty.'}
 
     def request_report(self, record_type=None, report_id=None, data=None):
+        """
+        Required data:
+        * :campaignType:  The type of campaign for which report should be generated. Must be sponsoredProducts.
+        """
+        if not data:
+            data = {'campaignType': 'sponsoredProducts'}
+        elif not data.get('campaignType'):
+            data['campaignType'] = 'sponsoredProducts'
+
         if record_type is not None:
             interface = '{}/report'.format(record_type)
             return self._operation(interface, data, method='POST')
         elif report_id is not None:
             interface = 'reports/{}'.format(report_id)
             return self._operation(interface)
+        else:
+            return {'success': False,
+                    'code': 0,
+                    'response': 'record_type and report_id are both empty.'}
 
     def get_report(self, report_id):
         interface = 'reports/{}'.format(report_id)
         res = self._operation(interface)
-        if json.loads(res['response'])['status'] == 'SUCCESS':
+        if res['code'] == 200 and json.loads(res['response'])['status'] == 'SUCCESS':
             res = self._download(
                 location=json.loads(res['response'])['location'])
             return res
@@ -636,6 +688,26 @@ class AdvertisingApi:
             return res
         else:
             return res
+
+    def get_ad_group_bid_recommendations(self, ad_group_id):
+        """Request bid recommendations for specified ad group."""
+        interface = 'adGroups/{}/bidRecommendations'.format(ad_group_id)
+        return self._operation(interface)
+
+    def get_keyword_bid_recommendations(self, keyword_id=None, keyword_data=None):
+        """
+        Request bid recommendations for:
+
+        * a specified keyword
+        * a list of up to 100 keywords
+
+        A list of keywords must be in the KeywordBidRecommendationsData format:
+
+        ```
+        int adGroupId: []
+        ```
+        """
+        pass
 
     def _download(self, location):
         headers = {'Authorization': 'Bearer {}'.format(self._access_token),
@@ -665,16 +737,16 @@ class AdvertisingApi:
                             'response': json.loads(data.decode('utf-8'))}
                 else:
                     return {'success': False,
-                            'code': res.code,
+                            'code': response.code,
                             'response': 'Location is empty.'}
             else:
                 return {'success': False,
-                        'code': res.code,
+                        'code': response.code,
                         'response': 'Location not found.'}
         except urllib.error.HTTPError as e:
             return {'success': False,
                     'code': e.code,
-                    'response': e.msg}
+                    'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
 
     def _operation(self, interface, params=None, method='GET'):
         """
@@ -684,7 +756,7 @@ class AdvertisingApi:
         :type interface: string
         :param params: Parameters associated with this call.
         :type params: GET: string POST: dictionary
-        :param method: Call method. Should be either 'GET' or 'POST'
+        :param method: Call method. Should be either 'GET', 'PUT', or 'POST'
         :type method: string
         """
         if self._access_token is None:
@@ -692,12 +764,17 @@ class AdvertisingApi:
                     'code': 0,
                     'response': 'access_token is empty.'}
 
-        headers = {'Authorization': 'bearer {}'.format(self._access_token),
+        headers = {'Authorization': 'Bearer {}'.format(self._access_token),
                    'Content-Type': 'application/json',
                    'User-Agent': self.user_agent}
 
         if self.profile_id is not None and self.profile_id != '':
             headers['Amazon-Advertising-API-Scope'] = self.profile_id
+        elif 'profiles' not in interface:
+            # Profile ID is required for all calls beyond authentication and getting profile info
+            return {'success': False,
+                    'code': 0,
+                    'response': 'profile_id is empty.'}
 
         data = None
 
@@ -721,7 +798,10 @@ class AdvertisingApi:
                 api_version=self.api_version,
                 interface=interface)
 
-        req = urllib.request.Request(url=url, headers=headers, data=data)
+        if PYTHON == 3:
+            req = urllib.request.Request(url=url, headers=headers, data=data)
+        else:
+            req = MethodRequest(url=url, headers=headers, data=data, method=method)
         req.method = method
 
         try:
@@ -732,11 +812,10 @@ class AdvertisingApi:
         except urllib.error.HTTPError as e:
             return {'success': False,
                     'code': e.code,
-                    'response': e.msg}
+                    'response': '{msg}: {details}'.format(msg=e.msg, details=e.read())}
 
 
 class NoRedirectHandler(urllib.request.HTTPErrorProcessor):
-
     """Handles report and snapshot redirects."""
 
     def http_response(self, request, response):
@@ -751,3 +830,22 @@ class NoRedirectHandler(urllib.request.HTTPErrorProcessor):
                 self, request, response)
 
     https_response = http_response
+
+
+class MethodRequest(urllib.request.Request):
+    """
+    When not using Python 3 and the requests library.
+    Source: Ed Marshall, https://gist.github.com/logic/2715756
+    """
+    def __init__(self, *args, **kwargs):
+        if 'method' in kwargs:
+            self._method = kwargs['method']
+            del kwargs['method']
+        else:
+            self._method = None
+        return urllib.request.Request.__init__(self, *args, **kwargs)
+
+    def get_method(self, *args, **kwargs):
+        if self._method is not None:
+            return self._method
+        return urllib.request.Request.get_method(self, *args, **kwargs)
